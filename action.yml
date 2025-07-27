@@ -58,16 +58,17 @@ runs:
       run: |
         pip install ibflex requests beautifulsoup4 lxml numpy pandas
     
-    - name: Download exporter scripts
+    - name: Checkout action repository
+      uses: actions/checkout@v3
+      with:
+        repository: jefrnc/ibkr-auto-exporter
+        path: ibkr-auto-exporter
+        
+    - name: Copy exporter scripts
       shell: bash
       run: |
-        # Download the necessary scripts from the action repository
-        wget -q https://raw.githubusercontent.com/jefrnc/ibkr-auto-exporter/main/src/ibkr_simple_exporter.py
-        wget -q https://raw.githubusercontent.com/jefrnc/ibkr-auto-exporter/main/src/daily_exporter.py
-        wget -q https://raw.githubusercontent.com/jefrnc/ibkr-auto-exporter/main/src/weekly_summary.py
-        wget -q https://raw.githubusercontent.com/jefrnc/ibkr-auto-exporter/main/src/monthly_summary.py
-        wget -q https://raw.githubusercontent.com/jefrnc/ibkr-auto-exporter/main/src/generate_calendar.py
-        wget -q https://raw.githubusercontent.com/jefrnc/ibkr-auto-exporter/main/src/generate_stats.py
+        # Copy scripts from the action repository
+        cp ibkr-auto-exporter/src/*.py .
     
     - name: Run daily export
       shell: bash
