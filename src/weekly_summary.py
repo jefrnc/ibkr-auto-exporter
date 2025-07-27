@@ -119,10 +119,17 @@ def analyze_trading_patterns(trades: List[Dict]) -> Dict[str, Any]:
         # By day of week
         trade_date = trade.get('tradeDate', '')
         if trade_date:
-            day_of_week = datetime.strptime(trade_date, '%Y-%m-%d').strftime('%A')
+            # Handle both YYYYMMDD and YYYY-MM-DD formats
+            if len(trade_date) == 8 and trade_date.isdigit():
+                # Convert YYYYMMDD to YYYY-MM-DD
+                trade_date_formatted = f"{trade_date[:4]}-{trade_date[4:6]}-{trade_date[6:8]}"
+            else:
+                trade_date_formatted = trade_date
+            
+            day_of_week = datetime.strptime(trade_date_formatted, '%Y-%m-%d').strftime('%A')
             patterns['byDayOfWeek'][day_of_week]['count'] += 1
             patterns['byDayOfWeek'][day_of_week]['pnl'] += trade.get('pnl', 0)
-            patterns['tradingDays'].add(trade_date)
+            patterns['tradingDays'].add(trade_date_formatted)
         
         # Track largest wins/losses
         pnl = trade.get('pnl', 0)
