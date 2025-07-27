@@ -1,0 +1,23 @@
+name: Export IBKR Trading Data
+
+on:
+  schedule:
+    # Run daily at 10 PM EST (3 AM UTC)
+    - cron: '0 3 * * *'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+    
+    - name: Export IBKR data
+      uses: jefrnc/ibkr-auto-exporter@v1
+      with:
+        ibkr-token: ${{ secrets.IBKR_TOKEN }}
+        ibkr-query-id: ${{ secrets.IBKR_QUERY_ID }}

@@ -1,0 +1,72 @@
+name: Advanced IBKR Export
+
+on:
+  schedule:
+    # Run every 4 hours during market days
+    - cron: '0 */4 * * 1-5'
+    # Run once on weekends
+    - cron: '0 22 * * 0,6'
+  workflow_dispatch:
+    inputs:
+      force-summaries:
+        description: 'Force generate weekly and monthly summaries'
+        required: false
+        default: 'false'
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: write      # If using GitHub Pages
+      id-token: write   # For GitHub Pages deployment
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0  # Full history for better analytics
+    
+    - name: Export IBKR data
+      uses: jefrnc/ibkr-auto-exporter@v1
+      with:
+        ibkr-token: ${{ secrets.IBKR_TOKEN }}
+        ibkr-query-id: ${{ secrets.IBKR_QUERY_ID }}
+        export-path: 'trading-data'
+        base-currency: 'USD'
+        generate-weekly: ${{ github.event.inputs.force-summaries || 'auto' }}
+        generate-monthly: ${{ github.event.inputs.force-summaries || 'auto' }}
+    
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: trading-exports
+        path: trading-data/
+        retention-days: 90
+    
+    # Optional: Deploy dashboard to GitHub Pages
+    - name: Setup Pages
+      if: success()
+      uses: actions/configure-pages@v3
+    
+    - name: Upload Pages artifact
+      if: success()
+      uses: actions/upload-pages-artifact@v2
+      with:
+        path: 'docs'
+    
+    - name: Deploy to GitHub Pages
+      if: success()
+      id: deployment
+      uses: actions/deploy-pages@v2
+    
+    # Optional: Send notification
+    - name: Send notification
+      if: always()
+      uses: 8398a7/action-slack@v3
+      with:
+        status: ${{ job.status }}
+        text: 'IBKR export completed'
+        webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}

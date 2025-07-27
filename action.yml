@@ -1,0 +1,140 @@
+name: 'IBKR Auto-Exporter'
+description: 'Automatically export trading data from Interactive Brokers using Flex Web Service API'
+author: 'jefrnc'
+branding:
+  icon: 'trending-up'
+  color: 'blue'
+
+inputs:
+  ibkr-token:
+    description: 'Your IBKR Flex Web Service token'
+    required: true
+  ibkr-query-id:
+    description: 'Your IBKR Flex Query ID'
+    required: true
+  export-path:
+    description: 'Path where exports will be saved'
+    required: false
+    default: 'exports'
+  commit-exports:
+    description: 'Whether to commit exported files'
+    required: false
+    default: 'true'
+  generate-weekly:
+    description: 'Generate weekly summary (auto on Sundays)'
+    required: false
+    default: 'auto'
+  generate-monthly:
+    description: 'Generate monthly summary (auto on last day)'
+    required: false
+    default: 'auto'
+  obfuscate-account:
+    description: 'Obfuscate account names for privacy'
+    required: false
+    default: 'true'
+  base-currency:
+    description: 'Base currency for P&L calculations'
+    required: false
+    default: 'USD'
+  cost-basis-min:
+    description: 'Minimum cost basis to include trades (e.g., 0)'
+    required: false
+    default: ''
+  cost-basis-max:
+    description: 'Maximum cost basis to include trades (e.g., 50)'
+    required: false
+    default: ''
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: Install dependencies
+      shell: bash
+      run: |
+        pip install ibflex requests beautifulsoup4 lxml numpy pandas
+    
+    - name: Download exporter scripts
+      shell: bash
+      run: |
+        # Download the necessary scripts from the action repository
+        wget -q https://raw.githubusercontent.com/jefrnc/ibkr-auto-exporter/main/src/ibkr_simple_exporter.py
+        wget -q https://raw.githubusercontent.com/jefrnc/ibkr-auto-exporter/main/src/daily_exporter.py
+        wget -q https://raw.githubusercontent.com/jefrnc/ibkr-auto-exporter/main/src/weekly_summary.py
+        wget -q https://raw.githubusercontent.com/jefrnc/ibkr-auto-exporter/main/src/monthly_summary.py
+        wget -q https://raw.githubusercontent.com/jefrnc/ibkr-auto-exporter/main/src/generate_calendar.py
+        wget -q https://raw.githubusercontent.com/jefrnc/ibkr-auto-exporter/main/src/generate_stats.py
+    
+    - name: Run daily export
+      shell: bash
+      env:
+        IBKR_TOKEN: ${{ inputs.ibkr-token }}
+        IBKR_QUERY_ID: ${{ inputs.ibkr-query-id }}
+        EXPORT_OUTPUT_DIR: ${{ inputs.export-path }}
+        OBFUSCATE_ACCOUNT: ${{ inputs.obfuscate-account }}
+        BASE_CURRENCY: ${{ inputs.base-currency }}
+        COST_BASIS_MIN: ${{ inputs.cost-basis-min }}
+        COST_BASIS_MAX: ${{ inputs.cost-basis-max }}
+      run: |
+        echo "📅 Running IBKR export for $(date +%Y-%m-%d)..."
+        python daily_exporter.py
+    
+    - name: Generate weekly summary
+      shell: bash
+      env:
+        EXPORT_OUTPUT_DIR: ${{ inputs.export-path }}
+      run: |
+        # Check if we should generate weekly summary
+        GENERATE_WEEKLY="${{ inputs.generate-weekly }}"
+        DAY_OF_WEEK=$(date +%u)  # 1=Monday, 7=Sunday
+        
+        if [ "$GENERATE_WEEKLY" = "true" ]; then
+          echo "📊 Force generating weekly summary..."
+          python weekly_summary.py
+        elif [ "$GENERATE_WEEKLY" = "auto" ] && [ "$DAY_OF_WEEK" = "7" -o "$DAY_OF_WEEK" = "1" ]; then
+          echo "📊 Auto-generating weekly summary (weekend)..."
+          python weekly_summary.py
+        fi
+    
+    - name: Generate monthly summary  
+      shell: bash
+      env:
+        EXPORT_OUTPUT_DIR: ${{ inputs.export-path }}
+      run: |
+        # Check if we should generate monthly summary
+        GENERATE_MONTHLY="${{ inputs.generate-monthly }}"
+        DAY_OF_MONTH=$(date +%d)
+        
+        if [ "$GENERATE_MONTHLY" = "true" ]; then
+          echo "📈 Force generating monthly summary..."
+          python monthly_summary.py
+        elif [ "$GENERATE_MONTHLY" = "auto" ] && [ "$DAY_OF_MONTH" -le "03" ]; then
+          echo "📈 Auto-generating monthly summary (start of month)..."
+          python monthly_summary.py
+        fi
+    
+    - name: Generate statistics and calendar
+      shell: bash
+      env:
+        EXPORT_OUTPUT_DIR: ${{ inputs.export-path }}
+      run: |
+        echo "📊 Generating statistics..."
+        python generate_stats.py || echo "Stats generation will work after first export"
+        
+        echo "📅 Generating calendar..."
+        python generate_calendar.py || echo "Calendar generation will work after first export"
+    
+    - name: Commit and push exports
+      if: ${{ inputs.commit-exports == 'true' }}
+      shell: bash
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "IBKR Export Action"
+        git add ${{ inputs.export-path }}/
+        git add README.md || true
+        git add .github/assets/calendar-*.svg || true
+        git diff --quiet && git diff --staged --quiet || (git commit -m "📊 IBKR export - $(date +%Y-%m-%d)" && git push)
