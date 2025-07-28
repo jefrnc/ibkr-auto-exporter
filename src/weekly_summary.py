@@ -176,7 +176,8 @@ def calculate_week_statistics(trades: List[Dict], daily_summaries: List[Dict]) -
             'avgDailyPnL': 0,
             'bestDay': None,
             'worstDay': None,
-            'consistency': 0
+            'consistency': 0,
+            'tradingDays': 0
         }
     
     # Aggregate statistics
