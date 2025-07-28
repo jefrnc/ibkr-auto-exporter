@@ -129,6 +129,19 @@ runs:
         echo "📅 Generating calendar..."
         python generate_calendar.py || echo "Calendar generation will work after first export"
     
+    - name: Generate dashboard data
+      shell: bash
+      env:
+        EXPORT_OUTPUT_DIR: ${{ inputs.export-path }}
+        COST_BASIS_MIN: ${{ inputs.cost-basis-min }}
+        COST_BASIS_MAX: ${{ inputs.cost-basis-max }}
+      run: |
+        echo "📊 Generating dashboard data..."
+        python generate_dashboard_data.py || echo "Dashboard data generation will work after first export"
+        
+        echo "📅 Generating monthly data files..."
+        python generate_monthly_data.py || echo "Monthly data generation will work after first export"
+    
     - name: Commit and push exports
       if: ${{ inputs.commit-exports == 'true' }}
       shell: bash
@@ -136,6 +149,7 @@ runs:
         git config --local user.email "action@github.com"
         git config --local user.name "IBKR Export Action"
         git add ${{ inputs.export-path }}/
+        git add docs/ || true
         git add README.md || true
         git add .github/assets/calendar-*.svg || true
         git diff --quiet && git diff --staged --quiet || (git commit -m "📊 IBKR export - $(date +%Y-%m-%d)" && git push)
