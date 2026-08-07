@@ -1,6 +1,6 @@
 # 🚀 IBKR Auto-Exporter
 
-[![GitHub Action](https://img.shields.io/badge/GitHub-Action-blue?logo=github)](https://github.com/marketplace/actions/ibkr-auto-exporter)
+[![GitHub Action](https://img.shields.io/badge/GitHub-Action-blue?logo=github)](https://github.com/jefrnc/ibkr-auto-exporter)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Version](https://img.shields.io/github/v/release/jefrnc/ibkr-auto-exporter)](https://github.com/jefrnc/ibkr-auto-exporter/releases)
 
@@ -378,7 +378,7 @@ Distributed under the MIT License. See [LICENSE](LICENSE) for more information.
 
 - 📧 [Open an Issue](https://github.com/jefrnc/ibkr-auto-exporter/issues)
 - 📚 [Read the FAQ](./docs/FAQ.md)
-- 💬 [Discussions](https://github.com/jefrnc/ibkr-auto-exporter/discussions)
+- 💬 [Issues](https://github.com/jefrnc/ibkr-auto-exporter/issues)
 
 ---
 
